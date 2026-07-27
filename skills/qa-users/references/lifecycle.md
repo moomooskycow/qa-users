@@ -1,0 +1,16 @@
+# Lifecycle
+
+A run is a bounded state machine. The harness root records each transition in the report:
+
+1. **Plan.** Validate `input.v1` once with [`input-semantic.mjs`](input-semantic.mjs) and its fixture contract, passing the same `{ cli, harnessDefaults }` options used by the harness. The validator performs duplicate/basic checks, resolves all 11 execution overrides, and returns the effective entrypoint set, threshold, and structured provenance. Use that single result to reject duplicate persona IDs, duplicate declared or resolved entrypoint IDs, undeclared IDs, and persona references outside the final set; resolve 1..N personas to named real entrypoints and the selected tracker adapter.
+Threshold and execution-override rules are normative in [`execution-overrides.md`](execution-overrides.md); the root records the validator's complete result in `output.v1`.
+2. **Dispatch.** Start persona leaves with the configured concurrency and session-length ceilings. Each leaf uses only its assigned application entrypoints and returns evidence; it does not inspect product source, tracker state, or issue APIs. A failed persona returns a `failure_reason`.
+3. **Reproduce.** A candidate friction becomes a finding only after the same user-path observation is reproduced. Record the exact steps, expected result, observed result, and evidence references.
+4. **RCA.** The harness root starts a fresh RCA leaf only for a confirmed reproduction. It is read-only: it may inspect the confirmed runtime evidence and public/runtime diagnostics, but it cannot mutate application or tracker state. Record `root_cause` only when the evidence directly establishes it; otherwise use `null`.
+5. **Triage.** The harness root alone applies the configured severity/confidence threshold, accepts or suppresses findings, and keeps strengths and suppressed friction in the report. Non-actionable, unconfirmed, or below-threshold observations remain suppressed with a reason.
+6. **Tracker write.** Exactly one serialized harness-root tracker writer performs the canonical SHA-256 finding fingerprint and exhaustive cursor/page deduplication, creates at most `maximum_creates` actionable findings, reads every created issue back before reporting success, and assigns `tracker_issue_id` to accepted findings after filing and deduplicated findings after matching.
+7. **Report.** Before emitting `output.v1`, run [`output-semantic.mjs`](output-semantic.mjs) against the resolved input and report; it MUST reject missing, wrong, or duplicate `persona_id` values so the output set equals the selected input persona set. JSON Schema cannot express this cross-document equality. Emit `output.v1`, including the frozen `execution_overrides`, required per-field provenance, persona statuses and failure reasons, evidence-backed findings, deduplication summary, strengths, suppressed friction, and tracker read-back IDs.
+
+A dry run stops after Plan. It MUST not open the application, invoke a persona, query a tracker, create an issue, or invoke a handoff.
+
+`fix-and-pr` is a separate handoff. It can be requested only with explicit authorization, after the harness-root tracker writer has filed and read back the issue, and with `inside_user_session: false`. It never runs in a persona session.

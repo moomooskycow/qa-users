@@ -1,0 +1,20 @@
+{
+  "name": "@misty-step/qa-users",
+  "version": "0.1.0",
+  "description": "Portable persona-driven QA user skill for Pi-compatible harnesses",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": { "test": "node scripts/check-integrity.mjs" },
+  "dependencies": {
+    "ajv": "8.17.1"
+  },
+  "files": ["skills", "scripts", "LICENSE", "README.md"],
+  "exports": {
+    "./output-semantic": "./skills/qa-users/references/output-semantic.mjs",
+    "./input-semantic": "./skills/qa-users/references/input-semantic.mjs",
+    "./finding-fingerprint": "./skills/qa-users/references/finding-fingerprint.mjs",
+    "./package.json": "./package.json"
+  },
+  "keywords": ["misty-step", "qa", "personas", "pi-skill", "omp", "nen"]
+}
